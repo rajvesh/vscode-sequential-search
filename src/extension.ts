@@ -1,100 +1,174 @@
 import * as vscode from 'vscode';
-import { getWebviewContent } from './getWebviewContent';
+import { getWebviewContent, getResultsWebviewContent } from './getWebviewContent';
 
 interface QueryData {
     enabled: boolean;
     query: string;
-    color: string;
+    backgroundColor: string;
+    foregroundColor: string;
     type: 'plain' | 'regex';
     isWholeLine: boolean;
-    colorType: 'background' | 'foreground';
+    wrap: boolean;
 }
 
-let currentPanel: vscode.WebviewPanel | undefined = undefined;
+let queryView: vscode.WebviewView | undefined = undefined;
+let resultsView: vscode.WebviewView | undefined = undefined;
 const decorationTypes: vscode.TextEditorDecorationType[] = [];
-let activeEditorAtPanelCreation: vscode.TextEditor | undefined = undefined;
+let activeEditor: vscode.TextEditor | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-    let disposable = vscode.commands.registerCommand('sequential-search.search', () => {
-        // Check if there's an active editor
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            vscode.window.showWarningMessage('No active text editor found. Please open a file first, then run the search.');
-            return;
-        }
-
-        // Store the active editor reference
-        activeEditorAtPanelCreation = editor;
-
-        if (currentPanel) {
-            currentPanel.reveal(vscode.ViewColumn.Beside);
-        } else {
-            currentPanel = vscode.window.createWebviewPanel(
-                'sequentialSearch',
-                'Sequential Search',
-                vscode.ViewColumn.Beside,
-                {
-                    enableScripts: true,
-                    localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')]
+    const queryProvider = new SearchQueryViewProvider(context);
+    const resultsProvider = new SearchResultsViewProvider(context);
+    
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(
+            'omniSearchView',
+            queryProvider,
+            {
+                webviewOptions: {
+                    retainContextWhenHidden: true
                 }
-            );
+            }
+        )
+    );
 
-            const toolkitUri = currentPanel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'toolkit.js'));
-            const codiconUri = currentPanel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'codicon.css'));
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(
+            'omniSearchResultsView',
+            resultsProvider,
+            {
+                webviewOptions: {
+                    retainContextWhenHidden: true
+                }
+            }
+        )
+    );
 
-            const nonce = getNonce();
-            currentPanel.webview.html = getWebviewContent(currentPanel.webview.cspSource, toolkitUri, codiconUri, nonce);
-            
-            currentPanel.onDidDispose(
-                () => {
-                    currentPanel = undefined;
-                    activeEditorAtPanelCreation = undefined;
-                    clearAllDecorations();
-                },
-                null,
-                context.subscriptions
-            );
-
-            currentPanel.webview.onDidReceiveMessage(
-                message => {
-                    switch (message.command) {
-                        case 'exportQueries':
-                            exportQueriesToFile(message.queries);
-                            return;
-                        case 'importQueries':
-                            importQueriesFromFile(currentPanel);
-                            return;
-                        case 'search':
-                            handleSearch(message.queries);
-                            return;
-                        case 'goToLine':
-                            handleGoToLine(message.line, message.character);
-                            return;
-                        case 'clear':
-                            handleClear();
-                            return;
-                    }
-                },
-                undefined,
-                context.subscriptions
-            );
-        }
+    // Track active editor changes
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+        activeEditor = editor;
     });
+    
+    // Initialize with current editor
+    activeEditor = vscode.window.activeTextEditor;
+}
 
-    context.subscriptions.push(disposable);
+class SearchQueryViewProvider implements vscode.WebviewViewProvider {
+    constructor(private context: vscode.ExtensionContext) {}
+
+    public resolveWebviewView(
+        webviewView: vscode.WebviewView,
+        context: vscode.WebviewViewResolveContext,
+        token: vscode.CancellationToken
+    ) {
+        queryView = webviewView;
+        
+        webviewView.webview.options = {
+            enableScripts: true,
+            localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'media')]
+        };
+
+        const toolkitUri = webviewView.webview.asWebviewUri(
+            vscode.Uri.joinPath(this.context.extensionUri, 'media', 'toolkit.js')
+        );
+        const codiconUri = webviewView.webview.asWebviewUri(
+            vscode.Uri.joinPath(this.context.extensionUri, 'media', 'codicon.css')
+        );
+
+        const nonce = getNonce();
+        webviewView.webview.html = getWebviewContent(
+            webviewView.webview.cspSource,
+            toolkitUri,
+            codiconUri,
+            nonce
+        );
+
+        webviewView.webview.onDidReceiveMessage(
+            async message => {
+                switch (message.command) {
+                    case 'exportQueries':
+                        exportQueriesToFile(message.queries);
+                        return;
+                    case 'importQueries':
+                        await importQueriesFromFile(queryView);
+                        return;
+                    case 'search':
+                        handleSearch(message.queries);
+                        return;
+                    case 'goToLine':
+                        handleGoToLine(message.line, message.character);
+                        return;
+                    case 'clear':
+                        handleClear();
+                        return;
+                    case 'wrapToggle':
+                        if (resultsView) {
+                            resultsView.webview.postMessage({ command: 'wrapToggle', wrap: message.wrap });
+                        }
+                        return;
+                }
+            },
+            undefined,
+            this.context.subscriptions
+        );
+    }
+}
+
+class SearchResultsViewProvider implements vscode.WebviewViewProvider {
+    constructor(private context: vscode.ExtensionContext) {}
+
+    public resolveWebviewView(
+        webviewView: vscode.WebviewView,
+        context: vscode.WebviewViewResolveContext,
+        token: vscode.CancellationToken
+    ) {
+        resultsView = webviewView;
+
+        webviewView.webview.options = {
+            enableScripts: true,
+            localResourceRoots: [
+                vscode.Uri.joinPath(this.context.extensionUri, 'media'),
+                vscode.Uri.joinPath(this.context.extensionUri, 'images')
+            ]
+        };
+
+        const codiconUri = webviewView.webview.asWebviewUri(
+            vscode.Uri.joinPath(this.context.extensionUri, 'media', 'codicon.css')
+        );
+
+        const iconUri = webviewView.webview.asWebviewUri(
+            vscode.Uri.joinPath(this.context.extensionUri, 'images', 'icon.png')
+        );
+
+        const nonce = getNonce();
+        webviewView.webview.html = getResultsWebviewContent(
+            webviewView.webview.cspSource,
+            codiconUri,
+            iconUri,
+            nonce
+        );
+
+        webviewView.webview.onDidReceiveMessage(
+            message => {
+                switch (message.command) {
+                    case 'goToLine':
+                        handleGoToLine(message.line, message.character);
+                        return;
+                }
+            },
+            undefined,
+            this.context.subscriptions
+        );
+    }
 }
 
 function handleSearch(queries: QueryData[]) {
-    let searchEditor = vscode.window.activeTextEditor;
-    
-    if (!searchEditor && activeEditorAtPanelCreation) {
-        searchEditor = activeEditorAtPanelCreation;
-    }
+    const searchEditor = activeEditor;
     
     if (!searchEditor) {
         vscode.window.showWarningMessage('No active text editor found. Please open a file and make sure it is visible.');
-        if (currentPanel) {
-            currentPanel.webview.postMessage({ command: 'noEditor', message: 'No active text editor found. Please open a file first.' });
+        if (resultsView) {
+            resultsView.webview.postMessage({ command: 'noEditor', message: 'No active text editor found. Please open a file first.' });
         }
         return;
     }
@@ -110,14 +184,10 @@ function handleSearch(queries: QueryData[]) {
         const queryData = queries[i];
         if (queryData.enabled && queryData.query) {
             const decorationOptions: vscode.DecorationRenderOptions = {
-                isWholeLine: queryData.isWholeLine || false
+                isWholeLine: queryData.isWholeLine,
+                backgroundColor: queryData.backgroundColor,
+                color: queryData.foregroundColor,
             };
-
-            if (queryData.colorType === 'foreground') {
-                decorationOptions.color = queryData.color;
-            } else {
-                decorationOptions.backgroundColor = queryData.color;
-            }
 
             const decorationType = vscode.window.createTextEditorDecorationType(decorationOptions);
             decorationTypes.push(decorationType);
@@ -137,25 +207,47 @@ function handleSearch(queries: QueryData[]) {
 
             for (let j = 0; j < document.lineCount; j++) {
                 const line = document.lineAt(j);
-                let match: RegExpExecArray | null;
-                while (match = regex.exec(line.text)) {
-                    const startPos = new vscode.Position(j, match.index);
-                    const endPos = new vscode.Position(j, match.index + match[0].length);
-                    const decoration = { range: new vscode.Range(startPos, endPos), hoverMessage: `Match for "${queryData.query}"` };
-                    if (!decorations[i]) {
-                        decorations[i] = [];
+                if (queryData.isWholeLine) {
+                    if (line.text.match(regex)) {
+                        const startPos = new vscode.Position(j, 0);
+                        const endPos = new vscode.Position(j, line.text.length);
+                        const decoration = { range: new vscode.Range(startPos, endPos), hoverMessage: `Match for "${queryData.query}"` };
+                        if (!decorations[i]) {
+                            decorations[i] = [];
+                        }
+                        decorations[i].push(decoration);
+                        results.push({
+                            query: queryData.query,
+                            line: j + 1,
+                            character: 1,
+                            text: line.text,
+                            backgroundColor: queryData.backgroundColor,
+                            foregroundColor: queryData.foregroundColor,
+                            isWholeLine: queryData.isWholeLine,
+                            matchedText: line.text
+                        });
                     }
-                    decorations[i].push(decoration);
-                    results.push({
-                        query: queryData.query,
-                        line: j + 1,
-                        character: match.index + 1,
-                        text: line.text,
-                        color: queryData.color,
-                        colorType: queryData.colorType,
-                        isWholeLine: queryData.isWholeLine,
-                        matchedText: match[0]
-                    });
+                } else {
+                    let match: RegExpExecArray | null;
+                    while (match = regex.exec(line.text)) {
+                        const startPos = new vscode.Position(j, match.index);
+                        const endPos = new vscode.Position(j, match.index + match[0].length);
+                        const decoration = { range: new vscode.Range(startPos, endPos), hoverMessage: `Match for "${queryData.query}"` };
+                        if (!decorations[i]) {
+                            decorations[i] = [];
+                        }
+                        decorations[i].push(decoration);
+                        results.push({
+                            query: queryData.query,
+                            line: j + 1,
+                            character: match.index + 1,
+                            text: line.text,
+                            backgroundColor: queryData.backgroundColor,
+                            foregroundColor: queryData.foregroundColor,
+                            isWholeLine: queryData.isWholeLine,
+                            matchedText: match[0]
+                        });
+                    }
                 }
             }
         }
@@ -170,7 +262,7 @@ function handleSearch(queries: QueryData[]) {
     });
 
     // Group results by line number
-    const groupedResults: { [key: number]: { line: number; text: string; matches: { query: string; color: string; colorType: string; isWholeLine: boolean; startChar: number; endChar: number }[] } } = {};
+    const groupedResults: { [key: number]: { line: number; text: string; matches: { query: string; backgroundColor: string; foregroundColor: string; isWholeLine: boolean; startChar: number; endChar: number }[] } } = {};
     for (const result of results) {
         if (!groupedResults[result.line]) {
             groupedResults[result.line] = {
@@ -182,8 +274,8 @@ function handleSearch(queries: QueryData[]) {
         const matchLength = result.matchedText ? result.matchedText.length : result.query.length;
         groupedResults[result.line].matches.push({
             query: result.query,
-            color: result.color,
-            colorType: result.colorType,
+            backgroundColor: result.backgroundColor,
+            foregroundColor: result.foregroundColor,
             isWholeLine: result.isWholeLine,
             startChar: result.character - 1,
             endChar: result.character - 1 + matchLength
@@ -199,7 +291,7 @@ function handleSearch(queries: QueryData[]) {
             return (b.endChar - b.startChar) - (a.endChar - a.startChar);
         });
 
-        const merged: { query: string; color: string; colorType: string; isWholeLine: boolean; startChar: number; endChar: number }[] = [];
+        const merged: { query: string; backgroundColor: string; foregroundColor: string; isWholeLine: boolean; startChar: number; endChar: number }[] = [];
         for (const match of lineResult.matches) {
             const isOverlapping = merged.some(m =>
                 match.startChar < m.endChar && match.endChar > m.startChar
@@ -217,15 +309,15 @@ function handleSearch(queries: QueryData[]) {
         searchEditor.setDecorations(decorationTypes[i], decorations[i] || []);
     }
 
-    if (currentPanel) {
-        currentPanel.webview.postMessage({ command: 'results', results: finalResults });
+    if (resultsView) {
+        resultsView.webview.postMessage({ command: 'results', results: finalResults });
     }
 }
 
 function handleGoToLine(line: number, character: number) {
     let goToEditor = vscode.window.activeTextEditor;
-    if (!goToEditor && activeEditorAtPanelCreation) {
-        goToEditor = activeEditorAtPanelCreation;
+    if (!goToEditor && activeEditor) {
+        goToEditor = activeEditor;
     }
     if (goToEditor) {
         const position = new vscode.Position(line - 1, character - 1);
@@ -237,13 +329,13 @@ function handleGoToLine(line: number, character: number) {
 
 function handleClear() {
     clearAllDecorations();
-    if (currentPanel) {
-        currentPanel.webview.postMessage({ command: 'results', results: [] });
+    if (resultsView) {
+        resultsView.webview.postMessage({ command: 'results', results: [] });
     }
 }
 
 function clearAllDecorations() {
-    const editorToClear = vscode.window.activeTextEditor || activeEditorAtPanelCreation;
+    const editorToClear = vscode.window.activeTextEditor || activeEditor;
     if (editorToClear) {
         for (const decorationType of decorationTypes) {
             editorToClear.setDecorations(decorationType, []);
@@ -270,21 +362,21 @@ async function exportQueriesToFile(queries: QueryData[]) {
         const exportData = {
             version: '1.0',
             exportedAt: new Date().toISOString(),
-            description: 'Sequential Search Queries - Exported from VS Code Sequential Search extension',
+            description: 'Omni Search Queries - Exported from VS Code Omni Search extension',
             queries: queries
         };
 
         const content = JSON.stringify(exportData, null, 2);
         await vscode.workspace.fs.writeFile(saveUri, Buffer.from(content, 'utf8'));
         
-        vscode.window.showInformationMessage(`✓ Exported ${queries.length} query/queries to: ${saveUri.fsPath}`);
+        vscode.window.showInformationMessage(`Exported ${queries.length} query/queries to: ${saveUri.fsPath}`);
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         vscode.window.showErrorMessage(`Failed to export queries: ${errorMessage}`);
     }
 }
 
-async function importQueriesFromFile(panel: vscode.WebviewPanel | undefined) {
+async function importQueriesFromFile(view: vscode.WebviewView | undefined) {
     try {
         const openUris = await vscode.window.showOpenDialog({
             filters: {
@@ -323,9 +415,9 @@ async function importQueriesFromFile(panel: vscode.WebviewPanel | undefined) {
 
         const validQueries = queries.filter((q: any) => {
             return q && typeof q.query === 'string' && 
-                   typeof q.color === 'string' && 
-                   (q.type === 'plain' || q.type === 'regex') &&
-                   (q.colorType === 'background' || q.colorType === 'foreground');
+                   typeof q.backgroundColor === 'string' && 
+                   typeof q.foregroundColor === 'string' &&
+                   (q.type === 'plain' || q.type === 'regex');
         });
 
         if (validQueries.length === 0) {
@@ -333,15 +425,15 @@ async function importQueriesFromFile(panel: vscode.WebviewPanel | undefined) {
             return;
         }
 
-        if (panel) {
-            panel.webview.postMessage({ 
+        if (queryView) {
+            queryView.webview.postMessage({ 
                 command: 'importQueries', 
                 queries: validQueries,
-                message: `Imported ${validQueries.length} query/queries from: ${fileUri.fsPath}`
+                message: `Imported ${validQueries.length} query/queries`
             });
         }
         
-        vscode.window.showInformationMessage(`✓ Imported ${validQueries.length} query/queries from: ${fileUri.fsPath}`);
+        vscode.window.showInformationMessage(`Imported ${validQueries.length} query/queries from: ${fileUri.fsPath}`);
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         vscode.window.showErrorMessage(`Failed to import queries: ${errorMessage}`);
@@ -358,15 +450,6 @@ function getNonce(): string {
 }
 
 export function deactivate() {
-    // Clean up the panel
-    if (currentPanel) {
-        currentPanel.dispose();
-        currentPanel = undefined;
-    }
-    
-    // Clear all decorations
+    // Clean up all decorations on deactivation
     clearAllDecorations();
-    
-    // Reset editor reference
-    activeEditorAtPanelCreation = undefined;
 }

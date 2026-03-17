@@ -1,6 +1,6 @@
 {
-    "name": "sequential-search",
-    "displayName": "Sequential Search",
+    "name": "omni-search",
+    "displayName": "Omni Search",
     "description": "Search for multiple strings sequentially in a file, with highlighting.",
     "version": "1.0.0",
     "publisher": "rajeshvasireddy",
@@ -33,20 +33,54 @@
         "Visualization"
     ],
     "activationEvents": [
-        "onCommand:sequential-search.search"
+        "onView:omniSearchView"
     ],
     "main": "./out/extension.js",
     "contributes": {
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "omni-search-container",
+                    "title": "Omni Search",
+                    "icon": "images/icon.png"
+                }
+            ],
+            "panel": [
+                {
+                    "id": "omni-search-results-panel",
+                    "title": "Omni Search Results",
+                    "icon": "images/icon.png"
+                }
+            ]
+        },
+        "views": {
+            "omni-search-container": [
+                {
+                    "type": "webview",
+                    "id": "omniSearchView",
+                    "name": "Queries",
+                    "contextualTitle": "Omni Search"
+                }
+            ],
+            "omni-search-results-panel": [
+                {
+                    "type": "webview",
+                    "id": "omniSearchResultsView",
+                    "name": "Results",
+                    "contextualTitle": "Omni Search Results"
+                }
+            ]
+        },
         "commands": [
             {
-                "command": "sequential-search.search",
-                "title": "Sequential Search"
+                "command": "omni-search.search",
+                "title": "Omni Search"
             }
         ],
         "configuration": {
-            "title": "Sequential Search",
+            "title": "Omni Search",
             "properties": {
-                "sequentialSearch.savedQueries": {
+                "omniSearch.savedQueries": {
                     "type": "array",
                     "default": [],
                     "description": "Saved queries with their colors and settings"
@@ -61,15 +95,15 @@
         "test": "npm run compile && node ./node_modules/@vscode/test-electron/bin/test"
     },
     "devDependencies": {
-        "@types/vscode": "^1.87.0",
-        "@types/node": "^20.11.28",
-        "typescript": "^5.4.3",
-        "@vscode/test-electron": "^2.3.9",
-        "@types/mocha": "^10.0.6",
         "@types/glob": "^7.1.4",
-        "mocha": "^10.3.0",
-        "glob": "^10.3.10",
+        "@types/mocha": "^10.0.6",
+        "@types/node": "^20.11.28",
+        "@types/vscode": "^1.87.0",
+        "@vscode/codicons": "^0.0.35",
+        "@vscode/test-electron": "^2.5.2",
         "@vscode/webview-ui-toolkit": "^1.2.2",
-        "@vscode/codicons": "^0.0.35"
+        "glob": "^10.3.10",
+        "mocha": "^10.3.0",
+        "typescript": "^5.4.3"
     }
 }

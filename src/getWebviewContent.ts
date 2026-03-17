@@ -8,30 +8,24 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; font-src ${cspSource}; script-src ${cspSource} 'nonce-${nonce}' 'unsafe-inline';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="${codiconUri}" rel="stylesheet" />
-    <title>Sequential Search</title>
+    <title>Omni Search</title>
     <style>
         :root {
-            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --primary-dark: #5a67d8;
-            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            --danger-gradient: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
-            --info-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --primary: var(--vscode-button-background);
+            --secondary: var(--vscode-button-secondaryBackground);
+            --accent: var(--vscode-commandPalette-border);
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
             --card-bg: var(--vscode-editor-background);
-            --card-border: rgba(102, 126, 234, 0.3);
-            --card-hover-border: rgba(102, 126, 234, 0.6);
-            --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
-            --shadow-lg: 0 8px 24px rgba(0,0,0,0.2);
+            --card-border: var(--vscode-widget-border);
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.12);
         }
         
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
         }
         
         * {
@@ -44,190 +38,192 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
             font-family: var(--vscode-font-family);
             background: var(--vscode-editor-background);
             color: var(--vscode-foreground);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         
         .header {
-            background: var(--primary-gradient);
-            padding: 20px 24px;
-            color: white;
-            box-shadow: var(--shadow-md);
+            background: var(--vscode-panel-background);
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--vscode-widget-border);
+            flex-shrink: 0;
         }
         
         .header h1 {
             margin: 0;
-            font-size: 22px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .header h1 .codicon {
-            font-size: 26px;
-        }
-        
-        .header-subtitle {
-            margin: 6px 0 0 0;
-            font-size: 12px;
-            opacity: 0.95;
-        }
-        
-        .container {
-            padding: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        .section-title {
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--vscode-foreground);
-            opacity: 0.6;
-            margin-bottom: 14px;
+            font-size: 18px;
+            font-weight: 600;
             display: flex;
             align-items: center;
             gap: 8px;
         }
         
+        .header h1 .codicon {
+            font-size: 20px;
+        }
+        
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--vscode-descriptionForeground);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
         .queries-section {
             background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 18px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow-md);
-            animation: fadeIn 0.4s ease;
+            border-bottom: 1px solid var(--vscode-widget-border);
+            padding: 12px;
+            flex-shrink: 0;
+            max-height: 100%;
+            overflow-y: auto;
+            border-radius: 0;
+        }
+        
+        .queries-section .section-title {
+            margin-bottom: 10px;
+            padding: 0 4px;
         }
         
         .query-container {
-            display: flex;
+            display: grid;
+            grid-template-columns: 20px 1fr 40px 40px 60px 50px 60px 20px;
             align-items: center;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 12px 14px;
+            gap: 6px;
+            margin-bottom: 8px;
+            padding: 10px;
             background: var(--vscode-input-background);
             border: 1px solid var(--vscode-widget-border);
-            border-radius: 10px;
+            border-radius: 4px;
             transition: all 0.2s;
         }
-        
-        .query-container:hover {
-            border-color: var(--card-hover-border);
-            box-shadow: var(--shadow-sm);
+
+        .query-container:nth-child(odd) {
+            background: var(--vscode-input-background);
         }
-        
-        .query-container:last-child {
-            margin-bottom: 0;
+
+        .query-container:nth-child(even) {
+            background: var(--vscode-input-background);
+            border-color: var(--vscode-input-border);
+        }
+
+        .query-container:hover {
+            border-color: var(--accent);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         
         .query-input {
-            flex: 1;
-            min-width: 200px;
-            padding: 8px 12px;
+            padding: 6px 8px;
             border: 1px solid var(--vscode-widget-border);
-            border-radius: 6px;
+            border-radius: 3px;
             background: var(--vscode-input-background);
             color: var(--vscode-input-foreground);
-            font-family: var(--vscode-font-family);
-            font-size: 13px;
+            font-family: var(--vscode-editor-font-family);
+            font-size: 11px;
+            min-width: 0;
         }
         
         .query-input:focus {
-            outline: 1px solid var(--primary-dark);
-            border-color: var(--primary-dark);
+            outline: none;
+            border-color: var(--accent);
         }
         
         .color-picker-wrapper {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 4px 8px;
-            background: var(--vscode-editor-inactiveSelectionBackground);
-            border-radius: 6px;
+            gap: 3px;
+            background: transparent;
+            border-radius: 3px;
+            padding: 0;
         }
         
         .color-picker-wrapper span {
-            font-size: 11px;
-            font-weight: 600;
-            opacity: 0.8;
+            font-size: 9px;
+            font-weight: 500;
         }
         
         input[type="color"] {
-            width: 32px;
-            height: 32px;
-            border: 2px solid var(--vscode-widget-border);
-            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            border: 1px solid var(--vscode-widget-border);
+            border-radius: 4px;
             cursor: pointer;
             padding: 0;
-            background: transparent;
         }
         
         input[type="color"]:hover {
-            border-color: var(--primary-dark);
+            border-color: var(--accent);
         }
         
         input[type="color"]::-webkit-color-swatch-wrapper {
-            padding: 0;
+            padding: 1px;
         }
         
         input[type="color"]::-webkit-color-swatch {
             border: none;
-            border-radius: 4px;
+            border-radius: 2px;
         }
         
-        .type-dropdown {
-            padding: 6px 10px;
+        .type-dropdown, .colorType {
+            padding: 6px 6px;
             border: 1px solid var(--vscode-widget-border);
-            border-radius: 6px;
+            border-radius: 3px;
             background: var(--vscode-dropdown-background);
             color: var(--vscode-dropdown-foreground);
-            font-size: 12px;
+            font-size: 10px;
             cursor: pointer;
+            min-width: 0;
         }
         
-        .type-dropdown:focus {
-            outline: 1px solid var(--primary-dark);
-            border-color: var(--primary-dark);
+        .type-dropdown:focus, .colorType:focus {
+            outline: none;
+            border-color: var(--accent);
         }
         
         .query-options {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 6px 10px;
-            background: var(--vscode-editor-inactiveSelectionBackground);
-            border-radius: 6px;
-            border: 1px solid var(--vscode-widget-border);
+            gap: 4px;
         }
-        
+
         .query-options label {
-            font-size: 12px;
-            font-weight: 500;
             display: flex;
             align-items: center;
             gap: 4px;
+            font-size: 10px;
             cursor: pointer;
         }
-        
+
         .query-options input[type="checkbox"] {
+            margin: 0;
             cursor: pointer;
-            width: 14px;
-            height: 14px;
         }
-        
+
         .remove-btn {
-            margin-left: auto;
-            opacity: 0.5;
-            transition: all 0.2s;
+            opacity: 0.6;
+            transition: opacity 0.2s;
             background: transparent;
             border: none;
             color: var(--vscode-foreground);
             cursor: pointer;
-            padding: 4px;
-            border-radius: 4px;
+            padding: 2px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
         }
         
         .remove-btn:hover {
@@ -237,59 +233,74 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
         
         .action-buttons {
             display: flex;
-            gap: 10px;
+            gap: 4px;
             flex-wrap: wrap;
-            margin-top: 16px;
-            padding-top: 16px;
+            padding: 8px 0 0 0;
             border-top: 1px solid var(--vscode-widget-border);
+            margin-top: 8px;
+            padding-top: 8px;
         }
         
         .btn {
-            padding: 10px 18px;
+            padding: 6px 10px;
             font-weight: 600;
-            border-radius: 8px;
-            border: none;
+            border-radius: 3px;
+            border: 1px solid transparent;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s ease;
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 12px;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
+            gap: 4px;
+            font-size: 10px;
+            user-select: none;
+            white-space: nowrap;
         }
         
         .btn-primary {
-            background: var(--primary-gradient);
-            color: white;
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: 1px solid var(--accent);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary:hover {
+            opacity: 0.9;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
         }
         
         .btn-success {
-            background: var(--success-gradient);
+            background: var(--success);
             color: white;
+        }
+        
+        .btn-success:hover {
+            opacity: 0.85;
         }
         
         .btn-info {
-            background: var(--info-gradient);
-            color: white;
-        }
-        
-        .btn-danger {
-            background: var(--danger-gradient);
+            background: var(--vscode-symbolIcon-fileForeground);
             color: white;
         }
         
         .btn-secondary {
             background: var(--vscode-button-secondaryBackground);
             color: var(--vscode-button-secondaryForeground);
+            border: 1px solid var(--vscode-widget-border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--vscode-button-secondaryHoverBackground);
+            border-color: var(--accent);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .results-section {
-            margin-top: 20px;
-            animation: fadeIn 0.5s ease;
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px;
+            animation: fadeIn 0.4s ease;
+            background: var(--vscode-editor-background);
         }
         
         .results-header {
@@ -297,80 +308,105 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
             justify-content: space-between;
             align-items: center;
             margin-bottom: 14px;
-            padding: 10px 14px;
-            background: var(--vscode-editor-inactiveSelectionBackground);
-            border-radius: 8px;
-            border: 1px solid var(--vscode-widget-border);
+            padding: 0 4px;
+            border-bottom: 1px solid var(--vscode-widget-border);
+            padding-bottom: 10px;
         }
         
         .results-count {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--vscode-button-background);
+            opacity: 0.9;
         }
         
+        .results-header h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .results-header h1 .codicon {
+            font-size: 20px;
+        }
+
         .result-card {
             display: flex;
             align-items: flex-start;
-            padding: 14px 16px;
+            padding: 12px 14px;
             margin-bottom: 10px;
             border: 1px solid var(--vscode-widget-border);
-            border-radius: 10px;
-            background: var(--card-bg);
+            border-radius: 6px;
+            background: var(--vscode-editor-background);
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         
         .result-card:hover {
-            border-color: var(--card-hover-border);
-            transform: translateX(6px);
-            box-shadow: var(--shadow-md);
+            background: var(--vscode-list-hoverBackground);
+            border-color: var(--accent);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+        
+        .result-card:active {
+            transform: translateY(0);
         }
         
         .line-number-badge {
             display: flex;
             align-items: center;
             justify-content: center;
-            min-width: 60px;
+            min-width: 55px;
             height: 36px;
             padding: 0 10px;
-            background: var(--primary-gradient);
-            color: white;
-            border-radius: 8px;
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border-radius: 4px;
             font-weight: 700;
             font-size: 13px;
             margin-right: 12px;
-            box-shadow: var(--shadow-sm);
+            border: none;
             flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         
         .line-content-wrapper {
             flex: 1;
             min-width: 0;
+            overflow: hidden;
         }
         
         .line-content {
             font-family: var(--vscode-editor-font-family);
-            font-size: var(--vscode-editor-font-size);
+            font-size: 13px;
             line-height: 1.6;
             color: var(--vscode-foreground);
-            white-space: pre-wrap;
             word-break: break-word;
-            padding: 6px 10px;
-            background: var(--vscode-textBlockQuote-background);
-            border-radius: 6px;
-            border-left: 3px solid var(--card-border);
+            padding: 4px 0;
+            background: transparent;
+            border: none;
+        }
+        
+        .line-content.wrap {
+            white-space: pre-wrap;
+        }
+        
+        .line-content.no-wrap {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .match-highlight {
-            padding: 2px 6px;
-            border-radius: 4px;
+            padding: 1px 3px;
+            border-radius: 2px;
             font-weight: 600;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
         }
         
         .no-results, .no-editor {
@@ -378,60 +414,78 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 60px 20px;
+            padding: 50px 20px;
             text-align: center;
             color: var(--vscode-descriptionForeground);
-            background: var(--card-bg);
-            border: 2px dashed var(--vscode-widget-border);
-            border-radius: 12px;
         }
         
         .no-results .codicon, .no-editor .codicon {
-            font-size: 56px;
-            margin-bottom: 16px;
+            font-size: 40px;
+            margin-bottom: 12px;
             opacity: 0.4;
         }
         
         .no-results h3, .no-editor h3 {
-            margin: 0 0 8px 0;
-            font-size: 16px;
+            margin: 0 0 6px 0;
+            font-size: 14px;
             font-weight: 600;
             color: var(--vscode-foreground);
         }
         
         .no-results p, .no-editor p {
             margin: 0;
-            font-size: 13px;
-            max-width: 400px;
+            font-size: 12px;
+            max-width: 350px;
+            line-height: 1.4;
         }
         
         .status-message {
-            padding: 12px 16px;
-            margin-bottom: 14px;
-            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 12px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             gap: 10px;
             font-weight: 500;
-            box-shadow: var(--shadow-sm);
+            font-size: 13px;
+            animation: fadeIn 0.3s ease;
         }
         
         .status-message.success {
-            background: linear-gradient(135deg, rgba(17, 153, 142, 0.15) 0%, rgba(56, 239, 125, 0.15) 100%);
-            border: 2px solid #38ef7d;
-            color: #38ef7d;
+            background: var(--success);
+            color: white;
+            border: 1px solid var(--success);
+            box-shadow: 0 2px 6px rgba(40, 167, 69, 0.2);
         }
         
         .status-message.error {
             background: var(--vscode-inputValidation-errorBackground);
-            border: 2px solid var(--vscode-inputValidation-errorBorder);
+            border: 1px solid var(--vscode-inputValidation-errorBorder);
             color: var(--vscode-errorForeground);
+            box-shadow: 0 2px 6px rgba(220, 53, 69, 0.2);
         }
         
         .status-message.info {
             background: var(--vscode-editor-inactiveSelectionBackground);
-            border: 2px solid var(--vscode-widget-border);
+            border: 1px solid var(--vscode-widget-border);
             color: var(--vscode-foreground);
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--vscode-editor-background);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--vscode-scrollbarSlider-background);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--vscode-scrollbarSlider-hoverBackground);
         }
     </style>
 </head>
@@ -439,112 +493,152 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
     <div class="header">
         <h1>
             <span class="codicon codicon-search"></span>
-            Sequential Search
+            Omni Search
         </h1>
-        <p class="header-subtitle">Search & highlight multiple patterns with custom colors</p>
     </div>
     
     <div class="container">
         <div class="queries-section">
             <div class="section-title">
                 <span class="codicon codicon-symbol-keyword"></span>
-                Search Queries
+                Queries
             </div>
             
             <div id="queries">
                 <div class="query-container">
-                    <input type="checkbox" class="enabled" checked title="Enable/Disable this query" />
-                    <input type="text" class="query-input" placeholder="Enter search query..." />
+                    <input type="checkbox" class="enabled" checked title="Enable/Disable" />
+                    <input type="text" class="query-input" placeholder="Search..." />
                     <div class="color-picker-wrapper">
-                        <span>Color:</span>
-                        <input type="color" class="color" value="#ffff00" />
+                        <input type="color" class="color-bg" value="#ffff00" />
+                    </div>
+                    <div class="color-picker-wrapper">
+                        <input type="color" class="color-fg" value="#000000" />
                     </div>
                     <select class="type-dropdown">
-                        <option value="plain">Plain Text</option>
+                        <option value="plain">Plain</option>
                         <option value="regex">Regex</option>
                     </select>
-                    <select class="type-dropdown colorType">
-                        <option value="background">Background</option>
-                        <option value="foreground">Text Color</option>
-                    </select>
                     <div class="query-options">
-                        <label title="Highlight the entire line">
+                        <label title="Whole line">
                             <input type="checkbox" class="isWholeLine" />
                             Whole Line
                         </label>
                     </div>
-                    <button class="remove-btn" title="Remove this query">
+                    <button class="remove-btn" title="Remove">
                         <span class="codicon codicon-close"></span>
                     </button>
                 </div>
             </div>
             
             <div class="action-buttons">
-                <button class="btn btn-secondary" id="add-query">
-                    <span class="codicon codicon-add"></span> Add Query
+                <button class="btn btn-secondary" id="add-query" title="Add a new query">
+                    <span class="codicon codicon-add"></span>
+                    <span>Add</span>
                 </button>
-                <button class="btn btn-primary" id="search">
-                    <span class="codicon codicon-search"></span> Search
+                <button class="btn btn-primary" id="search" title="Execute search">
+                    <span class="codicon codicon-search"></span>
+                    <span>Search</span>
                 </button>
-                <button class="btn btn-secondary" id="clear">
-                    <span class="codicon codicon-clear-all"></span> Clear
+                <button class="btn btn-secondary" id="clear" title="Clear results">
+                    <span class="codicon codicon-clear-all"></span>
+                    <span>Clear</span>
                 </button>
-                <button class="btn btn-success" id="export-queries">
-                    <span class="codicon codicon-export"></span> Export
+                <button class="btn btn-secondary" id="export-queries" title="Export as JSON">
+                    <span class="codicon codicon-export"></span>
+                    <span>Export</span>
                 </button>
-                <button class="btn btn-info" id="import-queries">
-                    <span class="codicon codicon-folder-opened"></span> Import
+                <button class="btn btn-secondary" id="import-queries" title="Import from JSON">
+                    <span class="codicon codicon-folder-opened"></span>
+                    <span>Import</span>
                 </button>
+                <label style="flex: 1; text-align: right; padding-right: 4px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 11px;">
+                    <input type="checkbox" id="wrap-toggle" checked />
+                    Wrap
+                </label>
             </div>
-        </div>
-        
-        <div class="results-section">
-            <div class="results-header">
-                <div class="section-title" style="margin: 0;">
-                    <span class="codicon codicon-list-filter"></span>
-                    Results
-                </div>
-                <div class="results-count" id="results-count"></div>
-            </div>
-            
-            <div id="status-message"></div>
-            <div id="results"></div>
         </div>
     </div>
 
     <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
         const queriesDiv = document.getElementById('queries');
-        const resultsDiv = document.getElementById('results');
-        const statusMessageDiv = document.getElementById('status-message');
-        const resultsCountDiv = document.getElementById('results-count');
+        const wrapToggle = document.getElementById('wrap-toggle');
+        let shouldWrap = true;
+
+        // Function to get contrasting color
+        function getContrastColor(hex) {
+            if (hex.indexOf('#') === 0) {
+                hex = hex.slice(1);
+            }
+            // Convert to RGB
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            // http://www.w3.org/TR/AERT#color-contrast
+            const brightness = Math.round(((r * 299) + (g * 587) + (b * 114)) / 1000);
+            return (brightness > 125) ? 'black' : 'white';
+        }
+
+        // Function to generate a random color
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const existingStatus = document.querySelector('.status-message');
+            if (existingStatus) {
+                existingStatus.remove();
+            }
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'status-message ' + type;
+            statusDiv.innerHTML = '<span class="codicon codicon-' + (type === 'success' ? 'check' : type === 'error' ? 'error' : 'info') + '"></span>' + message;
+            const queriesSection = document.querySelector('.queries-section');
+            queriesSection.insertBefore(statusDiv, queriesSection.firstChild);
+            setTimeout(function() {
+                statusDiv.style.opacity = '0';
+                statusDiv.style.transition = 'opacity 0.3s ease';
+                setTimeout(function() { statusDiv.remove(); }, 300);
+            }, 2000);
+        }
+
+        // Wrap toggle
+        wrapToggle.addEventListener('change', function() {
+            shouldWrap = this.checked;
+            vscode.postMessage({ command: 'wrapToggle', wrap: shouldWrap });
+        });
 
         // Add Query Button
         document.getElementById('add-query').addEventListener('click', function() {
             const newQueryDiv = document.createElement('div');
             newQueryDiv.className = 'query-container';
+            const bgColor = getRandomColor();
+            const fgColor = getContrastColor(bgColor);
             newQueryDiv.innerHTML = 
-                '<input type="checkbox" class="enabled" checked title="Enable/Disable this query" />' +
-                '<input type="text" class="query-input" placeholder="Enter search query..." />' +
+                '<input type="checkbox" class="enabled" checked />' +
+                '<input type="text" class="query-input" placeholder="Search..." />' +
                 '<div class="color-picker-wrapper">' +
-                    '<span>Color:</span>' +
-                    '<input type="color" class="color" value="#ffff00" />' +
+                    '<input type="color" class="color-bg" value="' + bgColor + '" />' +
+                '</div>' +
+                '<div class="color-picker-wrapper">' +
+                    '<input type="color" class="color-fg" value="' + fgColor + '" />' +
                 '</div>' +
                 '<select class="type-dropdown">' +
-                    '<option value="plain">Plain Text</option>' +
+                    '<option value="plain">Plain</option>' +
                     '<option value="regex">Regex</option>' +
                 '</select>' +
-                '<select class="type-dropdown colorType">' +
-                    '<option value="background">Background</option>' +
-                    '<option value="foreground">Text Color</option>' +
-                '</select>' +
                 '<div class="query-options">' +
-                    '<label title="Highlight the entire line">' +
+                    '<label>' +
                         '<input type="checkbox" class="isWholeLine" />' +
                         'Whole Line' +
                     '</label>' +
                 '</div>' +
-                '<button class="remove-btn" title="Remove this query">' +
+                '<button class="remove-btn" title="Remove">' +
                     '<span class="codicon codicon-close"></span>' +
                 '</button>';
             queriesDiv.appendChild(newQueryDiv);
@@ -569,9 +663,9 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
                 queries.push({
                     enabled: container.querySelector('.enabled').checked,
                     query: container.querySelector('.query-input').value,
-                    color: container.querySelector('.color').value,
+                    backgroundColor: container.querySelector('.color-bg').value,
+                    foregroundColor: container.querySelector('.color-fg').value,
                     type: container.querySelector('.type-dropdown').value,
-                    colorType: container.querySelector('.colorType').value,
                     isWholeLine: container.querySelector('.isWholeLine').checked
                 });
             }
@@ -595,9 +689,9 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
                 queries.push({
                     enabled: container.querySelector('.enabled').checked,
                     query: container.querySelector('.query-input').value,
-                    color: container.querySelector('.color').value,
+                    backgroundColor: container.querySelector('.color-bg').value,
+                    foregroundColor: container.querySelector('.color-fg').value,
                     type: container.querySelector('.type-dropdown').value,
-                    colorType: container.querySelector('.colorType').value,
                     isWholeLine: container.querySelector('.isWholeLine').checked
                 });
             }
@@ -619,129 +713,13 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
             }
         });
 
-        function showStatus(message, type) {
-            const icon = type === 'success' ? 'check' : type === 'error' ? 'error' : 'info';
-            statusMessageDiv.innerHTML = '<div class="status-message ' + type + '">' + 
-                '<span class="codicon codicon-' + icon + '"></span>' +
-                '<span>' + message + '</span>' +
-                '</div>';
-            setTimeout(function() {
-                statusMessageDiv.innerHTML = '';
-            }, 4000);
-        }
-
-        function hexToRgba(hex, alpha) {
-            const r = parseInt(hex.slice(1, 3), 16);
-            const g = parseInt(hex.slice(3, 5), 16);
-            const b = parseInt(hex.slice(5, 7), 16);
-            return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
-        }
-
-        function renderResults(results) {
-            resultsDiv.innerHTML = '';
-            
-            if (results.length === 0) {
-                resultsDiv.innerHTML = '<div class="no-results">' +
-                    '<span class="codicon codicon-search"></span>' +
-                    '<h3>No Results Yet</h3>' +
-                    '<p>Enter your search queries above and click "Search" to find matches.</p>' +
-                    '</div>';
-                resultsCountDiv.textContent = '';
-                return;
+        // Handle color picker changes
+        queriesDiv.addEventListener('input', function(event) {
+            if (event.target.classList.contains('color-bg')) {
+                const fgColorInput = event.target.closest('.query-container').querySelector('.color-fg');
+                fgColorInput.value = getContrastColor(event.target.value);
             }
-            
-            resultsCountDiv.textContent = results.length + ' line' + (results.length === 1 ? '' : 's') + ' with matches';
-            
-            for (let i = 0; i < results.length; i++) {
-                const result = results[i];
-                const resultCard = document.createElement('div');
-                resultCard.className = 'result-card';
-                resultCard.style.cursor = 'pointer';
-                resultCard.addEventListener('click', function() {
-                    vscode.postMessage({
-                        command: 'goToLine',
-                        line: result.line,
-                        character: 1
-                    });
-                });
-
-                const lineNumberBadge = document.createElement('div');
-                lineNumberBadge.className = 'line-number-badge';
-                lineNumberBadge.textContent = 'L' + result.line;
-
-                const lineContentWrapper = document.createElement('div');
-                lineContentWrapper.className = 'line-content-wrapper';
-
-                const lineContent = document.createElement('div');
-                lineContent.className = 'line-content';
-                
-                const hasWholeLineMatch = result.matches.some(function(m) { return m.isWholeLine; });
-                
-                if (hasWholeLineMatch) {
-                    const wholeLineMatch = result.matches.find(function(m) { return m.isWholeLine; });
-                    const wholeLineColor = wholeLineMatch ? wholeLineMatch.color : '#ffff00';
-                    const wholeLineColorType = wholeLineMatch ? wholeLineMatch.colorType : 'background';
-                    
-                    // Apply the selected color to the entire line background or foreground
-                    if (wholeLineColorType === 'foreground') {
-                        lineContent.style.color = wholeLineColor;
-                    } else {
-                        // Full line background highlight with the selected color
-                        lineContent.style.background = wholeLineColor;
-                        lineContent.style.display = 'block';
-                        lineContent.style.padding = '6px 10px';
-                        lineContent.style.margin = '-6px -10px';
-                        lineContent.style.borderRadius = '6px';
-                    }
-                    
-                    const sortedMatches = result.matches.slice().sort(function(a, b) { return b.startChar - a.startChar; });
-
-                    let lineText = result.text;
-                    for (let j = 0; j < sortedMatches.length; j++) {
-                        const match = sortedMatches[j];
-                        const before = lineText.substring(0, match.startChar);
-                        const matched = lineText.substring(match.startChar, match.endChar);
-                        const after = lineText.substring(match.endChar);
-                        
-                        let matchStyleAttr;
-                        if (match.colorType === 'foreground') {
-                            matchStyleAttr = 'color: ' + match.color;
-                        } else {
-                            matchStyleAttr = 'background: ' + match.color;
-                        }
-                        
-                        lineText = before + '<span class="match-highlight" style="' + matchStyleAttr + '">' + matched + '</span>' + after;
-                    }
-                    
-                    lineContent.innerHTML = lineText;
-                } else {
-                    const sortedMatches = result.matches.slice().sort(function(a, b) { return b.startChar - a.startChar; });
-
-                    let lineText = result.text;
-                    for (let j = 0; j < sortedMatches.length; j++) {
-                        const match = sortedMatches[j];
-                        const before = lineText.substring(0, match.startChar);
-                        const matched = lineText.substring(match.startChar, match.endChar);
-                        const after = lineText.substring(match.endChar);
-                        
-                        let matchStyleAttr;
-                        if (match.colorType === 'foreground') {
-                            matchStyleAttr = 'color: ' + match.color;
-                        } else {
-                            matchStyleAttr = 'background: ' + match.color;
-                        }
-                        
-                        lineText = before + '<span class="match-highlight" style="' + matchStyleAttr + '">' + matched + '</span>' + after;
-                    }
-                    lineContent.innerHTML = lineText;
-                }
-
-                lineContentWrapper.appendChild(lineContent);
-                resultCard.appendChild(lineNumberBadge);
-                resultCard.appendChild(lineContentWrapper);
-                resultsDiv.appendChild(resultCard);
-            }
-        }
+        });
 
         window.addEventListener('message', function(event) {
             const message = event.data;
@@ -755,18 +733,16 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
                         queriesDiv.innerHTML = 
                             '<div class="query-container">' +
                                 '<input type="checkbox" class="enabled" checked />' +
-                                '<input type="text" class="query-input" placeholder="Enter search query..." />' +
+                                '<input type="text" class="query-input" placeholder="Search..." />' +
                                 '<div class="color-picker-wrapper">' +
-                                    '<span>Color:</span>' +
-                                    '<input type="color" class="color" value="#ffff00" />' +
+                                    '<input type="color" class="color-bg" value="#ffff00" />' +
+                                '</div>' +
+                                '<div class="color-picker-wrapper">' +
+                                    '<input type="color" class="color-fg" value="#000000" />' +
                                 '</div>' +
                                 '<select class="type-dropdown">' +
-                                    '<option value="plain">Plain Text</option>' +
+                                    '<option value="plain">Plain</option>' +
                                     '<option value="regex">Regex</option>' +
-                                '</select>' +
-                                '<select class="type-dropdown colorType">' +
-                                    '<option value="background">Background</option>' +
-                                    '<option value="foreground">Text Color</option>' +
                                 '</select>' +
                                 '<div class="query-options">' +
                                     '<label>' +
@@ -774,7 +750,7 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
                                         'Whole Line' +
                                     '</label>' +
                                 '</div>' +
-                                '<button class="remove-btn">' +
+                                '<button class="remove-btn" title="Remove">' +
                                     '<span class="codicon codicon-close"></span>' +
                                 '</button>' +
                             '</div>';
@@ -787,16 +763,14 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
                                 '<input type="checkbox" class="enabled" ' + (query.enabled ? 'checked' : '') + ' />' +
                                 '<input type="text" class="query-input" value="' + query.query.replace(/"/g, '&quot;') + '" />' +
                                 '<div class="color-picker-wrapper">' +
-                                    '<span>Color:</span>' +
-                                    '<input type="color" class="color" value="' + query.color + '" />' +
+                                    '<input type="color" class="color-bg" value="' + query.backgroundColor + '" />' +
+                                '</div>' +
+                                '<div class="color-picker-wrapper">' +
+                                    '<input type="color" class="color-fg" value="' + query.foregroundColor + '" />' +
                                 '</div>' +
                                 '<select class="type-dropdown">' +
-                                    '<option value="plain"' + (query.type === 'plain' ? ' selected' : '') + '>Plain Text</option>' +
+                                    '<option value="plain"' + (query.type === 'plain' ? ' selected' : '') + '>Plain</option>' +
                                     '<option value="regex"' + (query.type === 'regex' ? ' selected' : '') + '>Regex</option>' +
-                                '</select>' +
-                                '<select class="type-dropdown colorType">' +
-                                    '<option value="background"' + (query.colorType === 'background' ? ' selected' : '') + '>Background</option>' +
-                                    '<option value="foreground"' + (query.colorType === 'foreground' ? ' selected' : '') + '>Text Color</option>' +
                                 '</select>' +
                                 '<div class="query-options">' +
                                     '<label>' +
@@ -811,8 +785,299 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
                         }
                     }
                     break;
+            }
+        });
+    </script>
+</body>
+</html>`;
+}
+
+export function getResultsWebviewContent(cspSource: string, codiconUri: vscode.Uri, iconUri: vscode.Uri, nonce: string) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; font-src ${cspSource}; img-src ${cspSource}; script-src ${cspSource} 'nonce-${nonce}' 'unsafe-inline';">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="${codiconUri}" rel="stylesheet" />
+    <title>Omni Search Results</title>
+    <style>
+        @font-face {
+            font-family: "codicon";
+            font-display: swap;
+            src: url("${codiconUri.toString()}") format("truetype");
+        }
+
+        :root {
+            --primary: var(--vscode-button-background);
+            --primary-foreground: var(--vscode-button-foreground);
+            --text: var(--vscode-foreground);
+            --text-muted: var(--vscode-descriptionForeground);
+            --border: var(--vscode-widget-border);
+            --hover-bg: var(--vscode-list-hoverBackground);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            padding: 0;
+            margin: 0;
+            font-family: var(--vscode-font-family);
+            background: var(--vscode-sideBar-background);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .results-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 14px 16px;
+            background: var(--vscode-editor-background);
+            border-radius: 8px;
+        }
+
+        .results-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0;
+        }
+
+        .results-icon {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+        }
+
+        .results-count {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--primary-foreground);
+            background: var(--primary);
+            padding: 3px 10px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+
+        .result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .result-item:hover {
+            background: var(--hover-bg);
+            border-color: var(--primary);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+            transform: translateX(3px);
+        }
+
+        .result-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 50px;
+            height: 30px;
+            padding: 0 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #ffffff;
+            flex-shrink: 0;
+            font-variant-numeric: tabular-nums;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+
+        .result-content {
+            flex: 1;
+            font-family: var(--vscode-editor-font-family);
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--text);
+            overflow: hidden;
+            padding: 8px 12px;
+            background: var(--vscode-textBlockQuote-background);
+            border-radius: 6px;
+            border-left: 3px solid;
+        }
+
+        .result-content.wrap {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .result-content.no-wrap {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .match-highlight {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state .codicon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .empty-state p {
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.5;
+            max-width: 300px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--vscode-editor-background);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--vscode-scrollbarSlider-background);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--vscode-scrollbarSlider-hoverBackground);
+        }
+    </style>
+</head>
+<body>
+    <div class="results-container">
+        <div id="results"></div>
+    </div>
+
+    <script nonce="${nonce}">
+        const vscode = acquireVsCodeApi();
+        const resultsDiv = document.getElementById('results');
+        let shouldWrap = true;
+
+        function renderResults(results) {
+            resultsDiv.innerHTML = '';
+
+            if (results.length === 0) {
+                resultsDiv.innerHTML = '<div class="empty-state">' +
+                    '<span class="codicon codicon-search"></span>' +
+                    '<h3>No Results</h3>' +
+                    '<p>Run a search from the Queries panel to see results here.</p>' +
+                    '</div>';
+                return;
+            }
+
+            // Render all results in a flat list
+            results.forEach(function(result, index) {
+                result.matches.forEach(function(match, matchIndex) {
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'result-item';
+                    resultItem.style.animationDelay = (index * 0.05) + 's';
+                    resultItem.addEventListener('click', function() {
+                        vscode.postMessage({
+                            command: 'goToLine',
+                            line: result.line,
+                            character: 1
+                        });
+                    });
+
+                    const before = escapeHtml(result.text.substring(0, match.startChar));
+                    const matched = escapeHtml(result.text.substring(match.startChar, match.endChar));
+                    const after = escapeHtml(result.text.substring(match.endChar));
+
+                    const lineNum = document.createElement('span');
+                    lineNum.className = 'result-line';
+                    lineNum.textContent = result.line;
+                    lineNum.style.background = 'linear-gradient(135deg, ' + match.backgroundColor + ' 0%, ' + adjustColor(match.backgroundColor, -20) + ' 100%)';
+                    lineNum.style.color = match.foregroundColor;
+
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'result-content ' + (shouldWrap ? 'wrap' : 'no-wrap');
+                    contentDiv.style.borderLeftColor = match.backgroundColor;
+                    contentDiv.innerHTML = before + '<span class="match-highlight" style="background-color:' + match.backgroundColor + '; color:' + match.foregroundColor + ';">' + matched + '</span>' + after;
+
+                    resultItem.appendChild(lineNum);
+                    resultItem.appendChild(contentDiv);
+                    resultsDiv.appendChild(resultItem);
+                });
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function adjustColor(hex, percent) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 +
+                (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+                (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+                (B < 255 ? (B < 1 ? 0 : B) : 255)
+            ).toString(16).slice(1);
+        }
+
+        window.addEventListener('message', function(event) {
+            const message = event.data;
+            switch (message.command) {
                 case 'noEditor':
-                    resultsDiv.innerHTML = '<div class="no-editor">' +
+                    resultsDiv.innerHTML = '<div class="empty-state">' +
                         '<span class="codicon codicon-warning"></span>' +
                         '<h3>No Active Editor</h3>' +
                         '<p>' + message.message + '</p>' +
@@ -820,6 +1085,14 @@ export function getWebviewContent(cspSource: string, toolkitUri: vscode.Uri, cod
                     break;
                 case 'results':
                     renderResults(message.results);
+                    break;
+                case 'wrapToggle':
+                    shouldWrap = message.wrap;
+                    const contents = resultsDiv.querySelectorAll('.result-content');
+                    contents.forEach(function(el) {
+                        el.classList.remove('wrap', 'no-wrap');
+                        el.classList.add(shouldWrap ? 'wrap' : 'no-wrap');
+                    });
                     break;
             }
         });
