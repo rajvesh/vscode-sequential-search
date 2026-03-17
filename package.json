@@ -73,3 +73,78 @@
         "@vscode/codicons": "^0.0.35"
     }
 }
+{
+    "name": "sequential-search",
+    "displayName": "Sequential Search",
+    "description": "Search for multiple strings sequentially in a file, with highlighting.",
+    "version": "1.0.0",
+    "publisher": "rajeshvasireddy",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/rajvesh/vscode-sequential-search.git"
+    },
+    "bugs": {
+        "url": "https://github.com/rajvesh/vscode-sequential-search/issues"
+    },
+    "icon": "images/icon.png",
+    "galleryBanner": {
+        "color": "#667eea",
+        "theme": "dark"
+    },
+    "keywords": [
+        "search",
+        "highlight",
+        "find",
+        "multi-cursor",
+        "log analyzer",
+        "query",
+        "regex"
+    ],
+    "engines": {
+        "vscode": "^1.87.0"
+    },
+    "categories": [
+        "Other",
+        "Visualization"
+    ],
+    "activationEvents": [
+        "onCommand:sequential-search.search"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "sequential-search.search",
+                "title": "Sequential Search"
+            }
+        ],
+        "configuration": {
+            "title": "Sequential Search",
+            "properties": {
+                "sequentialSearch.savedQueries": {
+                    "type": "array",
+                    "default": [],
+                    "description": "Saved queries with their colors and settings"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "test": "npm run compile && node ./node_modules/@vscode/test-electron/bin/test"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.87.0",
+        "@types/node": "^20.11.28",
+        "typescript": "^5.4.3",
+        "@vscode/test-electron": "^2.3.9",
+        "@types/mocha": "^10.0.6",
+        "@types/glob": "^7.1.4",
+        "mocha": "^10.3.0",
+        "glob": "^10.3.10",
+        "@vscode/webview-ui-toolkit": "^1.2.2",
+        "@vscode/codicons": "^0.0.35"
+    }
+}
